@@ -6,11 +6,12 @@ execute:
   echo: true
 
 book:
-  title: "YOUR PROJECT TITLE"
+  title: "NYC Taxis"
   author:
-    - AUTHOR1 (UNI1)
-    - AUTHOR2 (UNI2)
-  repo-url: https://github.com/YOUR_GITHUB_ACCOUNT/REPO_NAME
+    - Amaya Kejriwal (ark2235)
+    - Emily Duniec (emd2223)
+    - Annika Hsi (ah4287)
+  repo-url: https://github.com/amayakejriwal/nyc-taxis
   date: today
   page-footer:
     right: |

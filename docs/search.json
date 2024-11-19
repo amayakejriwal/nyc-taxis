@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "NYC Taxis",
     "section": "",
-    "text": "1 Introduction",
+    "text": "1 Introduction\nThe NYC taxi and limousine commission collects trip record information for each taxi and for-hire vehicle trip completed by licensed drivers and vehicles. Our group is specifically interested in Taxi data; we hope to explore patterns in trip distances, fare pricing, and passenger counts, as well as how these metrics vary by time of day or across different neighborhoods. By examining trends over time, we also aim to identify any seasonal or long-term shifts in taxi usage. Ultimately, this analysis will not only provide insights into passenger travel behavior but also offer a better understanding of how taxis serve as a vital component of New York City’s transportation ecosystem.",
     "crumbs": [
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
     ]

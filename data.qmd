@@ -1,5 +1,6 @@
 # Data
 
 ## Description
+We are using the New York City Taxi and Limousine Commission (TLC) trip record dataset. [(Link to dataset)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) The dataset is collected by technology providers authorized under the Taxicab & Livery Passenger Enhancement Programs (TPEP/LPEP), then provided to the NYC TLC. Data is available from 2009 through present and includes pick-up and drop-off dates, times, and locations, trip distances, itemized fares, rate types, payment types, and driver-reported passenger counts. It is updated monthly with a two-month delay, with each file containing a month of data. For each month, there are yellow taxi, green taxi, for-hire vehicle, and high volume for-hire vehicle trip record files. The data comes in PARQUET format with 19 columns. The number of rows depends on the number of trips that month. We will download the monthly data directly from the NYC TLC website and combine it in R.
 
 ## Missing value analysis

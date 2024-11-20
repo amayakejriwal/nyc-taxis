@@ -4,3 +4,66 @@
 We are using the New York City Taxi and Limousine Commission (TLC) trip record dataset. [(Link to dataset)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) The dataset is collected by technology providers authorized under the Taxicab & Livery Passenger Enhancement Programs (TPEP/LPEP), then provided to the NYC TLC. Data is available from 2009 through present and includes pick-up and drop-off dates, times, and locations, trip distances, itemized fares, rate types, payment types, and driver-reported passenger counts. It is updated monthly with a two-month delay, with each file containing a month of data. For each month, there are yellow taxi, green taxi, for-hire vehicle, and high volume for-hire vehicle trip record files. The data comes in PARQUET format with 19 columns. The number of rows depends on the number of trips that month. We will download the monthly data directly from the NYC TLC website and combine it in R.
 
 ## Missing value analysis
+
+The columns `passenger_count`, `RatecodeID`, `store_and_fwd_flag`, `congestion_surcharge`, and `airport_fee` are all missing values for the same 1,309,356 rows. These dates all occur between December 31, 2022 and December 31, 2023.
+
+```{r}
+# load packages
+library(arrow)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(lubridate)
+```
+
+```{r}
+# read in data and merge
+path <- 'data/raw'
+filenames <- list.files(path)
+merged <- read_parquet(paste0(path, '/', filenames[1]))
+for (file in filenames[2:length(filenames)]) {
+  prq <- read_parquet(paste0(path, '/', file))
+  colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
+  merged <- rbind(merged, prq)
+}
+
+# check for missing values
+missing_per_col <- as.data.frame(colSums(is.na(merged)))
+colnames(missing_per_col) <- 'num_missing'
+missing_per_col <- missing_per_col |> 
+  mutate('col' = rownames(missing_per_col)) |> 
+  arrange(-num_missing)
+rownames(missing_per_col) <- c() 
+
+# print summary of missing values
+missing_per_col
+
+# examine if all missing in same rows
+na_rows <- merged |> 
+  filter(is.na(RatecodeID))
+
+# get names of rows with missing values
+missing_cols <- (missing_per_col |> 
+  filter(num_missing > 0))$col
+
+# confirm that all columns with missing data are missing for same rows
+na_rows |> 
+  select(all_of(missing_cols)) |> 
+  is.na() |> 
+  colSums()
+
+# examine dates for missing rows
+range(na_rows$tpep_pickup_datetime)
+unique(format(as.POSIXct(na_rows$tpep_pickup_datetime), format = "%Y-%m-%d"))
+```
+
+```{r}
+# graphs
+# plot histogram of missing values
+ggplot(missing_per_col, aes(x = fct_inorder(as.factor(col)), y = num_missing)) +
+  geom_col(fill = 'cornflowerblue') +
+  labs(x = 'Column',
+       y = 'Number of missing values',
+       title = 'Missing Values by Column') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```

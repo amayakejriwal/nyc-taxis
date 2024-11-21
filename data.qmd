@@ -7,7 +7,7 @@ We are using the New York City Taxi and Limousine Commission (TLC) trip record d
 
 The columns `passenger_count`, `RatecodeID`, `store_and_fwd_flag`, `congestion_surcharge`, and `airport_fee` are all missing values for the same 1,309,356 rows. These dates all occur between December 31, 2022 and December 31, 2023.
 
-```{r}
+```{r include = FALSE}
 # load packages
 library(arrow)
 library(ggplot2)
@@ -36,7 +36,7 @@ missing_per_col <- missing_per_col |>
 rownames(missing_per_col) <- c() 
 
 # print summary of missing values
-missing_per_col
+# missing_per_col
 
 # examine if all missing in same rows
 na_rows <- merged |> 
@@ -47,14 +47,14 @@ missing_cols <- (missing_per_col |>
   filter(num_missing > 0))$col
 
 # confirm that all columns with missing data are missing for same rows
-na_rows |> 
-  select(all_of(missing_cols)) |> 
-  is.na() |> 
-  colSums()
+# na_rows |> 
+#   select(all_of(missing_cols)) |> 
+#   is.na() |> 
+#   colSums()
 
 # examine dates for missing rows
-range(na_rows$tpep_pickup_datetime)
-unique(format(as.POSIXct(na_rows$tpep_pickup_datetime), format = "%Y-%m-%d"))
+# range(na_rows$tpep_pickup_datetime)
+# unique(format(as.POSIXct(na_rows$tpep_pickup_datetime), format = "%Y-%m-%d"))
 ```
 
 ```{r}

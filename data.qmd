@@ -14,6 +14,7 @@ library(ggplot2)
 library(dplyr)
 library(forcats)
 library(lubridate)
+library(tidyr)
 ```
 
 ```{r}
@@ -26,7 +27,11 @@ for (file in filenames[2:length(filenames)]) {
   colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
   merged <- rbind(merged, prq)
 }
+```
 
+
+
+```{r}
 # check for missing values
 missing_per_col <- as.data.frame(colSums(is.na(merged)))
 colnames(missing_per_col) <- 'num_missing'
@@ -35,9 +40,6 @@ missing_per_col <- missing_per_col |>
   arrange(-num_missing)
 rownames(missing_per_col) <- c() 
 
-# print summary of missing values
-# missing_per_col
-
 # examine if all missing in same rows
 na_rows <- merged |> 
   filter(is.na(RatecodeID))
@@ -45,16 +47,6 @@ na_rows <- merged |>
 # get names of rows with missing values
 missing_cols <- (missing_per_col |> 
   filter(num_missing > 0))$col
-
-# confirm that all columns with missing data are missing for same rows
-# na_rows |> 
-#   select(all_of(missing_cols)) |> 
-#   is.na() |> 
-#   colSums()
-
-# examine dates for missing rows
-# range(na_rows$tpep_pickup_datetime)
-# unique(format(as.POSIXct(na_rows$tpep_pickup_datetime), format = "%Y-%m-%d"))
 ```
 
 ```{r}
@@ -67,3 +59,26 @@ ggplot(missing_per_col, aes(x = fct_inorder(as.factor(col)), y = num_missing)) +
        title = 'Missing Values by Column') +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
+This Missingness Correlation Matrix visualizes how the missing values in different columns are related. Each tile represents the correlation between the missingness of two features, with the diagonal always being 1 (a column perfectly correlates with itself). In our data, most tiles are gray which indicates weak or no correlation between missingness in most features. White tiles suggest that correlations could not be calculated (likely due to insufficient overlap). This implies that missing values in the dataset are largely independent across features, with no strong patterns of systematic missingness.
+
+```{r}
+# create a logical matrix of missingness
+missing_matrix <- is.na(merged)
+
+# calculate correlations between missingness
+missing_corr <- cor(missing_matrix, use = "pairwise.complete.obs")
+
+# convert to a data frame for visualization
+missing_corr_df <- as.data.frame(as.table(missing_corr))
+colnames(missing_corr_df) <- c("Column1", "Column2", "Correlation")
+
+# plot correlation heatmap
+ggplot(missing_corr_df, aes(x = Column1, y = Column2, fill = Correlation)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, name = "Correlation") +
+  labs(title = "Missingness Correlation Matrix", x = "Column", y = "Column") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+

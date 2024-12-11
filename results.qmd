@@ -1,1 +1,263 @@
 # Results
+
+## 1. Fare Amount by Trip Distance
+
+For the following scatterplots we used a random subsample of the data due to the full dataset being too large (over 38 million rows). Upon plotting `fare_amount` by `trip_distance` we found that there were distinct patterns within the scatterplot. We used `RatecodeID` (the final rate code in effect at the end of the trip) and `payment_type` to illuminate these patterns.
+
+```{r}
+# preprocessing
+
+# load packages
+library(arrow)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(lubridate)
+library(ggalluvial)
+
+# merging data (file was too big to store on github)
+path <- 'data/raw'
+filenames <- list.files(path)
+merged <- read_parquet(paste0(path, '/', filenames[1]))
+for (file in filenames[2:length(filenames)]) {
+  prq <- read_parquet(paste0(path, '/', file))
+  colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
+  merged <- rbind(merged, prq)
+}
+
+# look up table for locationIDs and boroughs
+zone_lookup <- readr::read_csv('data/preprocess/taxi_zone_lookup.csv')
+
+
+# randomly sample data
+idx <- sample(1:nrow(merged), nrow(merged)/1000, replace = FALSE)
+```
+
+## 1a. Fare Amount by Trip Distance and Rate Code
+
+In general, there was a positive linear relationship between `fare_amount` and `trip_distance`. However, JFK alone had a mostly constant fare, regardless of distance. Additionally, some trips with the standard rate were negative and appeared to have a negative linear relationship between the two variables. Lastly, a number of rides with negotiated fares appear to have not gone anywhere (trip distance = 0).
+
+```{r}
+# add column for rate code ID label
+merged_edit <- merged |> mutate(Ratecode_label = case_when(RatecodeID == 1 ~ "Standard rate",
+                                            RatecodeID == 2 ~ "JFK",
+                                            RatecodeID == 3 ~ "Newark",
+                                            RatecodeID == 4 ~ "Nassau/Westchester",
+                                            RatecodeID == 5 ~ "Negotiated fare",
+                                            RatecodeID == 6 ~ "Group ride",
+                                            RatecodeID == 99 | is.na(RatecodeID) ~ "NA"))
+merged_edit$Ratecode_label <- factor(merged_edit$Ratecode_label, 
+                                        levels = c("Standard rate", "JFK", "Newark", "Nassau/Westchester", "Negotiated fare", "Group ride", "NA"))
+
+# faceting on different variables
+ggplot(merged_edit[idx, ] |> filter(trip_distance < 1000, Ratecode_label != "NA"), 
+       aes(x = trip_distance, y = fare_amount)) +
+  geom_point(alpha = .5) +
+  facet_wrap(~as.factor(Ratecode_label)) +
+  labs(x = "Trip Distance (mi)",
+       y = "Fare Amount ($)",
+       title = "Fare Amount vs. Trip Distance by Rate Code")
+```
+
+## 1b. Negative Fares
+
+Using the `payment_type` variable, we saw that the negative fares tended to result from instances where there was a dispute or no charge was made.
+
+```{r}
+# add column for payment type label
+merged_edit <- merged_edit |> mutate(payment_type_label = case_when(payment_type == 0 ~ "NA",
+                                                                    payment_type == 1 ~ "Credit card",
+                                                                    payment_type == 2 ~ "Cash",
+                                                                    payment_type == 3 ~ "No charge",
+                                                                    payment_type == 4 ~ "Dispute",
+                                                                    payment_type == 5 ~ "Unknown"))
+
+# summarise by negative fare
+negative_fares_payment_type <- merged_edit |> 
+  mutate(negative_fare = ifelse(fare_amount < 0, 1, 0)) |> 
+  group_by(payment_type_label) |> 
+  summarise(percent_negative = mean(negative_fare))
+
+negative_fares_payment_type$payment_type_label <- as.factor(negative_fares_payment_type$payment_type_label)
+
+# negative fares by payment type
+ggplot(negative_fares_payment_type |> 
+         filter(payment_type_label != "NA"), 
+       aes(x = fct_reorder(payment_type_label, -percent_negative), y = percent_negative)) +
+  geom_col(fill = "cornflowerblue") +
+  labs(x = "Payment Type",
+       y = "Proportion of Negative Fares",
+       title = "Negative Fares by Payment Type")
+```
+
+# 2. Pick Up and Drop Off Locations
+
+Using an alluvial diagram, we saw that the vast majority of rides were within Manhattan. A small fraction of rides starting in Manhattan ended outside of Manhattan, while about half the rides that started outside Manhattan ended in Manhattan. We broke this down further by borough using a grouped bar plot. After Manhattan, the most rides started and ended in Queens, followed by Brooklyn. Interestingly, more rides started in Queens than ended there and more rides ended in Brooklyn than started there.
+
+```{r}
+# use look up table to get IDs in each borough
+boroughs <- zone_lookup$Borough |> unique()
+for (i in 1:length(boroughs)) {
+  b <- boroughs[i]
+  if (b == "N/A") {
+    b <- "NA"
+  }
+  if (b == "Staten Island") {
+    b <- "StatenIsland"
+  }
+  assign(paste0(b, "_locIDs"), (zone_lookup |> filter(Borough == b))$LocationID)
+}
+
+# label pick up and drop off locations by borough
+merged_edit <- merged_edit |> mutate(PUBorough = case_when(PULocationID %in% EWR_locIDs ~ "EWR",
+                                                      PULocationID %in% Queens_locIDs ~ "Queens",
+                                                      PULocationID %in% Bronx_locIDs ~ "Bronx",
+                                                      PULocationID %in% Manhattan_locIDs ~ "Manhattan",
+                                                      PULocationID %in% StatenIsland_locIDs ~ "Staten Island",
+                                                      PULocationID %in% Brooklyn_locIDs ~ "Brooklyn",
+                                                      PULocationID %in% Unknown_locIDs ~ "Unknown",
+                                                      PULocationID %in% NA_locIDs ~ "NA"))
+
+merged_edit <- merged_edit |> mutate(DOBorough = case_when(DOLocationID %in% EWR_locIDs ~ "EWR",
+                                                           DOLocationID %in% Queens_locIDs ~ "Queens",
+                                                           DOLocationID %in% Bronx_locIDs ~ "Bronx",
+                                                           DOLocationID %in% Manhattan_locIDs ~ "Manhattan",
+                                                           DOLocationID %in% StatenIsland_locIDs ~ "Staten Island",
+                                                           DOLocationID %in% Brooklyn_locIDs ~ "Brooklyn",
+                                                           DOLocationID %in% Unknown_locIDs ~ "Unknown",
+                                                           DOLocationID %in% NA_locIDs ~ "NA"))
+```
+
+```{r}
+# counts for each different pairing of pick up and drop off locations
+PU_DO_alluvial <- merged_edit |>
+  group_by(PUBorough, DOBorough) |> 
+  summarise(Freq = n())
+
+# label as Manhattan or not Manhattan
+PU_DO_alluvial_lumped <- merged_edit |> 
+  mutate(PUManhattan = ifelse(PUBorough == "Manhattan", "Manhattan" , "Non-Manhattan")) |> 
+  mutate(DOManhattan = ifelse(DOBorough == "Manhattan", "Manhattan", "Non-Manhattan")) |> 
+  group_by(PUManhattan, DOManhattan) |> 
+  summarise(Freq = n())
+
+# remove NAs
+PU_DO_alluvial_lumped <- PU_DO_alluvial_lumped |> 
+  filter(PUManhattan != "NA", DOManhattan != "NA")
+
+# alluvial diagram of rides (Manhattan vs. non-Manhattan)
+ggplot(PU_DO_alluvial_lumped, 
+       aes(axis1 = fct_reorder(as.factor(PUManhattan), Freq, mean),
+           axis2 = DOManhattan,
+           y = Freq, 
+           fill = DOManhattan)) +
+  geom_alluvium(alpha = .75) +
+  geom_stratum(fill = NA) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("Pick up location", "Drop off location"), name = "Axes") +
+  labs(y = "Number of Rides",
+       title = "Pick Up to Drop Off (Manhattan vs. Non-Manhattan)") +
+  guides(fill = "none")
+
+```
+
+```{r}
+# reformatting counts by location for grouped bar plot
+PU_freq_loc <- PU_DO_alluvial |> 
+  group_by(PUBorough) |> 
+  summarise(Freq = sum(Freq)) |> 
+  mutate(Type = "Pick Up")
+colnames(PU_freq_loc) <- c("Borough", "Freq", "Type")
+
+DO_freq_loc <- PU_DO_alluvial |> 
+  group_by(DOBorough) |> 
+  summarise(Freq = sum(Freq)) |>
+  mutate(Type = "Drop Off")
+colnames(DO_freq_loc) <- c("Borough", "Freq", "Type")
+
+PU_DO_freq <- rbind(PU_freq_loc, DO_freq_loc) 
+
+# ride frequency by pick up and drop off location
+ggplot(PU_DO_freq |> 
+         filter(Borough != "NA"),
+       aes(x = fct_reorder(as.factor(Borough), -Freq),
+           y = Freq,
+           fill = factor(Type, levels = c("Pick Up", "Drop Off")))) +
+  geom_col(position = "dodge") +
+  labs(x = "Borough",
+       y = "Number of Rides",
+       title = "Number of Rides by Location",
+       fill = "Location Type") +
+  scale_fill_manual(values = c("coral2", "coral4"))
+```
+
+## 3. Ride Frequency by Month
+
+The most rides occurred in May and October. Generally, rides were highest in the spring and fall months, decreasing during winter and summer months. There are clear dips in both the bar plot and line plot during January-February and July-September.
+
+```{r}
+# add column for month
+merged_edit <- merged_edit |> 
+  mutate(PUMonth_num = month(as.POSIXct(tpep_pickup_datetime))) |> 
+  mutate(PUMonth = case_when(PUMonth_num == 1 ~ "Jan",
+                             PUMonth_num == 2 ~ "Feb",
+                             PUMonth_num == 3 ~ "Mar",
+                             PUMonth_num == 4 ~ "Apr",
+                             PUMonth_num == 5 ~ "May",
+                             PUMonth_num == 6 ~ "Jun",
+                             PUMonth_num == 7 ~ "Jul",
+                             PUMonth_num == 8 ~ "Aug",
+                             PUMonth_num == 9 ~ "Sep",
+                             PUMonth_num == 10 ~ "Oct",
+                             PUMonth_num == 11 ~ "Nov",
+                             PUMonth_num == 12 ~ "Dec"))
+merged_edit$PUMonth <- fct_reorder(as.factor(merged_edit$PUMonth), merged_edit$PUMonth_num, mean)
+
+# monthly rides
+monthly_rides <- merged_edit |> 
+  group_by(PUMonth) |> 
+  summarise(Freq = n())
+
+monthly_rides_PU <- merged_edit |> 
+  group_by(PUMonth, PUBorough) |> 
+  summarise(Freq = n())
+
+monthly_rides_DO <- merged_edit |> 
+  group_by(PUMonth, DOBorough) |> 
+  summarise(Freq = n())
+
+# pick up month vs. number of rides
+ggplot(monthly_rides, aes(x = PUMonth, y = Freq)) +
+  geom_col(fill = "chartreuse4") +
+  labs(x = "Month",
+       y = "Number of Rides",
+       title = "Total Rides per Month")
+ggplot(monthly_rides, aes(x = PUMonth, y = Freq, group = 1)) +
+  geom_point(color = "chartreuse4") +
+  geom_line(color = "chartreuse4") +
+  labs(x = "Month",
+       y = "Number of Rides",
+       title = "Total Rides per Month")
+
+# by pickup
+ggplot(monthly_rides_PU |> filter(PUBorough != "NA"), 
+       aes(x = PUMonth, y = Freq, color = PUBorough)) +
+  geom_point() +
+  geom_line(aes(group = PUBorough)) +
+  labs(x = "Month",
+       y = "Log Number of Rides",
+       title = "Rides per Month by Pick Up Location",
+       color = "Pick Up Location") +
+  scale_y_log10()
+
+# by drop off
+ggplot(monthly_rides_DO |> filter(DOBorough != "NA"), 
+       aes(x = PUMonth, y = Freq, color = DOBorough)) +
+  geom_point() +
+  geom_line(aes(group = DOBorough)) +
+  labs(x = "Month",
+       y = "Log Number of Rides",
+       title = "Rides per Month by Drop Off Location",
+       fill = "Drop Off Location") +
+  scale_y_log10()
+```

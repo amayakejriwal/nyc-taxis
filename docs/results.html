@@ -216,7 +216,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
 <section id="fare-amount-by-trip-distance" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="fare-amount-by-trip-distance"><span class="header-section-number">3.1</span> 1. Fare Amount by Trip Distance</h2>
 <p>For the following scatterplots we used a random subsample of the data due to the full dataset being too large (over 38 million rows). Upon plotting <code>fare_amount</code> by <code>trip_distance</code> we found that there were distinct patterns within the scatterplot. We used <code>RatecodeID</code> (the final rate code in effect at the end of the trip) and <code>payment_type</code> to illuminate these patterns.</p>
@@ -280,17 +279,24 @@ Attaching package: 'lubridate'</code></pre>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggalluvial)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># merging data (file was too big to store on github)</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="st">'data/raw'</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>filenames <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>merged <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="fu">paste0</span>(path, <span class="st">'/'</span>, filenames[<span class="dv">1</span>]))</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (file <span class="cf">in</span> filenames[<span class="dv">2</span><span class="sc">:</span><span class="fu">length</span>(filenames)]) {</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  prq <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="fu">paste0</span>(path, <span class="st">'/'</span>, file))</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(prq) <span class="ot">&lt;-</span> <span class="fu">colnames</span>(merged) <span class="co"># this is just for discrepancies in capitalization of colnames</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  merged <span class="ot">&lt;-</span> <span class="fu">rbind</span>(merged, prq)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path &lt;- 'data/raw'</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># filenames &lt;- list.files(path)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># merged &lt;- read_parquet(paste0(path, '/', filenames[1]))</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># for (file in filenames[2:length(filenames)]) {</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   prq &lt;- read_parquet(paste0(path, '/', file))</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   colnames(prq) &lt;- colnames(merged) # this is just for discrepancies in capitalization of colnames</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   merged &lt;- rbind(merged, prq)</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co"># }</span></span>
 <span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co"># look up table for locationIDs and boroughs</span></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>zone_lookup <span class="ot">&lt;-</span> readr<span class="sc">::</span><span class="fu">read_csv</span>(<span class="st">'data/preprocess/taxi_zone_lookup.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="st">'data/raw'</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>filenames <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Use open_dataset to create a Dataset object</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>merged <span class="ot">&lt;-</span> <span class="fu">open_dataset</span>(<span class="fu">paste0</span>(path, <span class="st">'/'</span>, filenames))</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>merged <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(merged)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co"># look up table for locationIDs and boroughs</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>zone_lookup <span class="ot">&lt;-</span> readr<span class="sc">::</span><span class="fu">read_csv</span>(<span class="st">'data/preprocess/taxi_zone_lookup.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Rows: 265 Columns: 4</code></pre>
@@ -763,7 +769,6 @@ params$discern): Some strata appear at multiple axes.</code></pre>
 </div>
 </div>
 </div>
-<p>======= &gt;&gt;&gt;&gt;&gt;&gt;&gt; 2bf12e695e197ea0c3c525a598a2e703f08bc74e</p>
 
 
 </section>

@@ -16,18 +16,24 @@ library(lubridate)
 library(ggalluvial)
 
 # merging data (file was too big to store on github)
+# path <- 'data/raw'
+# filenames <- list.files(path)
+# merged <- read_parquet(paste0(path, '/', filenames[1]))
+# for (file in filenames[2:length(filenames)]) {
+#   prq <- read_parquet(paste0(path, '/', file))
+#   colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
+#   merged <- rbind(merged, prq)
+# }
+
 path <- 'data/raw'
 filenames <- list.files(path)
-merged <- read_parquet(paste0(path, '/', filenames[1]))
-for (file in filenames[2:length(filenames)]) {
-  prq <- read_parquet(paste0(path, '/', file))
-  colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
-  merged <- rbind(merged, prq)
-}
+
+# Use open_dataset to create a Dataset object
+merged <- open_dataset(paste0(path, '/', filenames))
+merged <- as.data.frame(merged)
 
 # look up table for locationIDs and boroughs
 zone_lookup <- readr::read_csv('data/preprocess/taxi_zone_lookup.csv')
-
 
 # randomly sample data
 idx <- sample(1:nrow(merged), nrow(merged)/1000, replace = FALSE)

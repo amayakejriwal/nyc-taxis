@@ -1,5 +1,4 @@
 # Results
-<<<<<<< HEAD
 
 ## 1. Fare Amount by Trip Distance
 

@@ -1,0 +1,17 @@
+{
+  "hash": "9521f1650e273706b1f44bd2da0ad0b6",
+  "result": {
+    "engine": "knitr",
+    "markdown": "# Data\n\n## Description\nWe are using the New York City Taxi and Limousine Commission (TLC) trip record dataset. [(Link to dataset)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) The dataset is collected by technology providers authorized under the Taxicab & Livery Passenger Enhancement Programs (TPEP/LPEP), then provided to the NYC TLC. Data is available from 2009 through present and includes pick-up and drop-off dates, times, and locations, trip distances, itemized fares, rate types, payment types, and driver-reported passenger counts. It is updated monthly with a two-month delay, with each file containing a month of data. For each month, there are yellow taxi, green taxi, for-hire vehicle, and high volume for-hire vehicle trip record files. The data comes in PARQUET format with 19 columns. The number of rows depends on the number of trips that month. We will download the monthly data directly from the NYC TLC website and combine it in R.\n\n## Missing value analysis\n\nThe columns `passenger_count`, `RatecodeID`, `store_and_fwd_flag`, `congestion_surcharge`, and `airport_fee` are all missing values for the same 1,309,356 rows. These dates all occur between December 31, 2022 and December 31, 2023.\n\n\n\n\n\n\n\n::: {.cell}\n\n```{.r .cell-code}\n# read in data and merge\npath <- 'data/raw'\nfilenames <- list.files(path)\nmerged <- read_parquet(paste0(path, '/', filenames[1]))\nfor (file in filenames[2:length(filenames)]) {\n  prq <- read_parquet(paste0(path, '/', file))\n  colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames\n  merged <- rbind(merged, prq)\n}\n\n# check for missing values\nmissing_per_col <- as.data.frame(colSums(is.na(merged)))\ncolnames(missing_per_col) <- 'num_missing'\nmissing_per_col <- missing_per_col |> \n  mutate('col' = rownames(missing_per_col)) |> \n  arrange(-num_missing)\nrownames(missing_per_col) <- c() \n\n# print summary of missing values\n# missing_per_col\n\n# examine if all missing in same rows\nna_rows <- merged |> \n  filter(is.na(RatecodeID))\n\n# get names of rows with missing values\nmissing_cols <- (missing_per_col |> \n  filter(num_missing > 0))$col\n\n# confirm that all columns with missing data are missing for same rows\n# na_rows |> \n#   select(all_of(missing_cols)) |> \n#   is.na() |> \n#   colSums()\n\n# examine dates for missing rows\n# range(na_rows$tpep_pickup_datetime)\n# unique(format(as.POSIXct(na_rows$tpep_pickup_datetime), format = \"%Y-%m-%d\"))\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\n# graphs\n# plot histogram of missing values\nggplot(missing_per_col, aes(x = fct_inorder(as.factor(col)), y = num_missing)) +\n  geom_col(fill = 'cornflowerblue') +\n  labs(x = 'Column',\n       y = 'Number of missing values',\n       title = 'Missing Values by Column') +\n  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))\n```\n\n::: {.cell-output-display}\n![](data_files/figure-html/unnamed-chunk-3-1.png){width=672}\n:::\n:::",
+    "supporting": [
+      "data_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

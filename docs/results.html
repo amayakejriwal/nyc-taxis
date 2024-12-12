@@ -216,6 +216,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
 <section id="fare-amount-by-trip-distance" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="fare-amount-by-trip-distance"><span class="header-section-number">3.1</span> 1. Fare Amount by Trip Distance</h2>
 <p>For the following scatterplots we used a random subsample of the data due to the full dataset being too large (over 38 million rows). Upon plotting <code>fare_amount</code> by <code>trip_distance</code> we found that there were distinct patterns within the scatterplot. We used <code>RatecodeID</code> (the final rate code in effect at the end of the trip) and <code>payment_type</code> to illuminate these patterns.</p>
@@ -702,7 +703,7 @@ params$discern): Some strata appear at multiple axes.</code></pre>
 </div>
 </div>
 </div>
-<p>The majority of trips cover shorter distances (less than 10 miles) and cluster around tip percentages between 10% and 20%, regardless of the borough. However, a few outliers show higher tip percentages exceeding 50%, especially for shorter trips. For longer trips (over 20 miles), tip percentages tend to stabilize or decrease. This suggests that tipping behavior is more variable for shorter trips but converges to a narrower range for longer trips. Also, many riders tend to tip in standard percentages, such as 20%, as evidenced by the horizontal lines at these tipping levels across various trip distances.</p>
+<p>The majority of trips cover shorter distances (less than 10 miles) and cluster around tip percentages between 10% and 20%, regardless of the borough. However, a few outliers show higher tip percentages exceeding 50%, especially for shorter trips. For longer trips (over 20 miles), tip percentages tend to stabilize or decrease. This suggests that tipping behavior is more variable for shorter trips but converges to a narrower range for longer trips. In addition, many riders tend to tip in standard percentages, such as 20%, as evidenced by the horizontal lines at these tipping levels across various trip distances.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -725,7 +726,7 @@ params$discern): Some strata appear at multiple axes.</code></pre>
 </div>
 </div>
 </div>
-<p>Tipping percentages for most boroughs are concentrated between 10% and 15%, except for notable outliers such as Bronx and “Unknown” which have variable average tipping percentages across different months. Seasonal trends are not strongly evident, but some boroughs like EWR and “Unknown” exhibit peak months, possibly tied to specific events or conditions.</p>
+<p>Tipping percentages for most boroughs are concentrated between 10% and 15%, except for notable outliers like the Bronx and “Unknown” which have variable average tipping percentages across different months. Seasonal trends are not strongly evident, but some boroughs like EWR and “Unknown” exhibit peak months, possibly tied to specific events or conditions.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -762,6 +763,7 @@ params$discern): Some strata appear at multiple axes.</code></pre>
 </div>
 </div>
 </div>
+<p>======= &gt;&gt;&gt;&gt;&gt;&gt;&gt; 2bf12e695e197ea0c3c525a598a2e703f08bc74e</p>
 
 
 </section>

@@ -195,6 +195,77 @@ ggplot(PU_DO_freq |>
   scale_fill_manual(values = c("coral2", "coral4"))
 ```
 
+
+
+```{r}
+# chloropleth 
+
+path <- 'data/raw'
+filenames <- list.files(path)
+
+merged <- open_dataset(paste0(path, '/', filenames))
+
+# summary table for chloropleth:
+merged_credit <- merged %>%
+  filter(payment_type == 1, total_amount > 0, !PULocationID %in% c(264, 265)) %>%
+  select(PULocationID, DOLocationID, VendorID,
+         tip_amount, fare_amount, tolls_amount,
+         improvement_surcharge, congestion_surcharge, extra,
+         airport_fee, mta_tax, total_amount) %>%
+  mutate(
+    tip_pct_fare_only = (tip_amount / fare_amount) * 100,
+    tip_pct_total = (tip_amount / (fare_amount +
+                                     tolls_amount +
+                                     improvement_surcharge +
+                                     congestion_surcharge +
+                                     extra + airport_fee + mta_tax)) * 100) %>%
+  filter(is.finite(tip_pct_fare_only), is.finite(tip_pct_total))
+
+# Convert summary_data to a data frame
+merged_credit_reg <- merged_credit %>% collect()
+
+merged_with_zones <- merged_credit_reg %>%
+  left_join(taxi_zone_lookup, by = c("PULocationID" = "LocationID"))
+
+manhattan_data <- merged_with_zones %>%
+  filter(Borough == "Manhattan")
+
+summary_data <- manhattan_data %>%
+  group_by(Zone) %>%
+  summarise(
+    total_rides = n(),
+    avg_tip_amount = mean(tip_amount, na.rm = TRUE),
+    avg_tip_pct_total = mean(tip_pct_total, na.rm = TRUE))
+
+
+# now shape file stuff:
+
+library(sf)
+taxi_zones_shp = st_read('data/preprocess/taxi_zones/taxi_zones.shp',quiet=TRUE)
+
+manhattan_zones_shp <- taxi_zones_shp %>%
+  filter(borough == "Manhattan")
+
+manhattan_zones_choropleth <- manhattan_zones_shp %>%
+  left_join(summary_data, by = c("zone" = "Zone"))
+
+manhattan_zones_choropleth <- manhattan_zones_choropleth %>%
+  mutate(total_rides = replace_na(total_rides, 0))
+
+ggplot(data = manhattan_zones_choropleth) +
+  geom_sf(aes(fill = total_rides), color = "white") +
+  scale_fill_viridis_c(option = "plasma", na.value = "grey50") +  # Adjust color scale
+  labs(
+    title = "Total Pick-ups by Manhattan Neighborhood",
+    fill = "Total Rides"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+
 ## Ride Frequency by Month
 
 The most rides occurred in May and October. Generally, rides were highest in the spring and fall months, decreasing during winter and summer months. There are clear dips in both the bar plot and line plot during January-February and July-September.

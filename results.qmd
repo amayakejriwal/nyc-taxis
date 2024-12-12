@@ -268,11 +268,13 @@ ggplot(monthly_rides_DO |> filter(DOBorough != "NA"),
 We found that Manhattan generally has a narrower spread of tip percentages, with a relatively high median, suggesting more consistent tipping behavior, though it also contains many outliers representing very high tipping percentages. Other boroughs, such as Queens and Brooklyn, show wider variability, with larger interquartile ranges and outliers, indicating less predictable tipping practices. Overall, tip percentages are predominantly below 50%, with a significant concentration in the 10-20% range.
 
 ```{r}
-merged_edit2 <- merged_edit |> select(DOBorough, PUBorough, tip_amount, total_amount, trip_distance, PUMonth)
+merged_edit2 <- merged_edit |> select(DOBorough, PUBorough, tip_amount, total_amount, trip_distance, PUMonth, fare_amount, payment_type)
 
 tips <- merged_edit2 |> 
   mutate(percent_tip = (tip_amount / total_amount) * 100) |> 
   filter(
+    payment_type == 1,
+    fare_amount > 0,
     percent_tip >= 0, 
     percent_tip < 200, 
     !is.na(DOBorough), 
@@ -292,17 +294,6 @@ ggplot(tips_sample, aes(x = DOBorough, y = percent_tip, fill = DOBorough)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r}
-tips_sample <- tips |> 
-  slice_sample(n = 10000)
-
-ggplot(tips_sample, aes(x = percent_tip, fill = DOBorough)) +
-  geom_density(alpha = 0.5) +
-  labs(title = "Density of Tip Percentages by Drop-off Borough",
-       x = "Tip Percentage (%)",
-       y = "Density") +
-  theme_minimal()
-```
 The majority of trips cover shorter distances (less than 10 miles) and cluster around tip percentages between 10% and 20%, regardless of the borough. However, a few outliers show higher tip percentages exceeding 50%, especially for shorter trips. For longer trips (over 20 miles), tip percentages tend to stabilize or decrease. This suggests that tipping behavior is more variable for shorter trips but converges to a narrower range for longer trips. In addition, many riders tend to tip in standard percentages, such as 20%, as evidenced by the horizontal lines at these tipping levels across various trip distances.
 
 ```{r}

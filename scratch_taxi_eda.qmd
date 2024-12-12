@@ -1,0 +1,132 @@
+---
+title: "misc_eda"
+editor: visual
+---
+
+```{r}
+# sum(merged$payment_type == 1) #29856932
+# load packages
+library(arrow)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(lubridate)
+library(tidyr)
+library(readr)
+
+taxi_zone_lookup <- read_csv("data/preprocess/taxi_zone_lookup.csv")
+
+path <- 'data/raw'
+filenames <- list.files(path)
+merged <- read_parquet(paste0(path, '/', filenames[1]))
+for (file in filenames[2:length(filenames)]) {
+  prq <- read_parquet(paste0(path, '/', file))
+  colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
+  merged <- rbind(merged, prq)}
+
+
+# filter by credit transactions + add location data, rmv NA and add airports
+merged_credit <- merged %>%
+  filter(payment_type == 1, !PULocationID %in% c(264, 265)) %>%
+  select(PULocationID, DOLocationID, tip_amount) %>%
+  left_join(taxi_zone_lookup, by = c("PULocationID" = "LocationID")) %>%
+  mutate(Borough = ifelse(PULocationID %in% c(1, 132, 138), "Airports", Borough))
+
+# group by borough and compute average tip
+avg_tips_by_borough <- merged_credit %>%
+  group_by(Borough) %>%
+  summarise(avg_tip_amount = mean(tip_amount, na.rm = TRUE)) %>%
+  arrange(desc(avg_tip_amount))
+
+# bar plot
+ggplot(avg_tips_by_borough, aes(x = reorder(Borough, -avg_tip_amount), y = avg_tip_amount)) +
+  geom_bar(stat = "identity", fill = "#f7b731") +
+  labs(title = "Average Tip Amount by Pick-up Borough",
+       x = "Borough",
+       y = "Average Tip Amount ($)") +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+
+
+
+# Process the merged dataset
+merged_credit <- merged %>%
+  filter(payment_type == 1, , total_amount != 0, !PULocationID %in% c(264, 265)) %>%
+  select(PULocationID, DOLocationID, VendorID, 
+         tip_amount, fare_amount, tolls_amount, 
+         improvement_surcharge, congestion_surcharge, extra, 
+         airport_fee, mta_tax, total_amount) %>%
+  left_join(taxi_zone_lookup, by = c("PULocationID" = "LocationID")) %>%
+  mutate(Borough = ifelse(PULocationID %in% c(1, 132, 138), "Airports", Borough))
+
+# calc tip percentages
+merged_credit <- merged_credit %>%
+  mutate(
+    tip_pct_fare_only = (tip_amount / fare_amount) * 100,
+    tip_pct_total = (tip_amount / (fare_amount + 
+                                     tolls_amount + 
+                                     improvement_surcharge + 
+                                     congestion_surcharge + 
+                                     extra + airport_fee + mta_tax)) * 100)
+
+
+
+
+
+```
+
+```{r}
+#merged_credit_cmt <- merged_credit %>% 
+#  filter(VendorID == 1)
+#mean(merged_credit_cmt$tip_pct_fare_only, na.rm = TRUE)
+#mean(merged_credit_cmt$tip_pct_total, na.rm = TRUE)
+
+
+# why are there inf values in mean
+#missing_total_fare <- merged_credit %>%
+#  filter(total_amount == 0)
+
+#print(nrow(missing_total_fare))
+# Identify rows with infinite values in tip_pct_fare_only
+# inf_rows_fare_only <- which(is.infinite(merged_credit$tip_pct_fare_only))
+# 
+# inf_rows_total <- which(is.infinite(merged_credit$tip_pct_total))
+
+# number of rows with infinite values in each column
+# print(length(inf_rows_fare_only))
+# print(length(inf_rows_total))
+# 
+# merged_credit_filt <- merged_credit[-inf_rows_fare_only, ]
+# 
+# 
+#merged_credit_cmt <- merged_credit_filt[merged_credit_filt$VendorID == 1, ] 
+# 
+# 
+# merged_credit_ver <- merged_credit_filt[merged_credit_filt$VendorID == 2, ]
+
+# 
+# mean(merged_credit_cmt$tip_pct_fare_only, na.rm = TRUE)
+# mean(merged_credit_cmt$tip_pct_total, na.rm = TRUE)
+# 
+# mean(merged_credit_ver$tip_pct_fare_only, na.rm = TRUE)
+# mean(merged_credit_ver$tip_pct_total, na.rm = TRUE)
+```
+
+```{r}
+merged_credit_cmt <- merged_credit %>%
+  filter(is.finite(tip_pct_fare_only), is.finite(tip_pct_total), VendorID == 1)
+
+merged_credit_ver <- merged_credit %>%
+  filter(is.finite(tip_pct_fare_only), is.finite(tip_pct_total), VendorID == 2)
+
+mean(merged_credit_cmt$tip_pct_fare_only, na.rm = TRUE)
+mean(merged_credit_cmt$tip_pct_total, na.rm = TRUE)
+
+mean(merged_credit_ver$tip_pct_fare_only, na.rm = TRUE)
+mean(merged_credit_ver$tip_pct_total, na.rm = TRUE)
+```

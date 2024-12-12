@@ -293,8 +293,8 @@ ggplot(tips_sample, aes(x = DOBorough, y = percent_tip, fill = DOBorough)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(aes(color = DOBorough), width = 0.2, alpha = 0.5, size = 1.5) + 
   labs(title = "Tip Percentage by DOBorough (Sampled Data)",
-       x = "Drop-off Borough",
-       y = "Tip Percentage (%)") +
+  x = "Drop-off Borough",
+  y = "Tip Percentage (%)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```

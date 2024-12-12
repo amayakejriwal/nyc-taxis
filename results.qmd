@@ -261,3 +261,82 @@ ggplot(monthly_rides_DO |> filter(DOBorough != "NA"),
        fill = "Drop Off Location") +
   scale_y_log10()
 ```
+
+## 4. Tipping
+
+We found that Manhattan generally has a narrower spread of tip percentages, with a relatively high median, suggesting more consistent tipping behavior, though it also contains many outliers representing very high tipping percentages. Other boroughs, such as Queens and Brooklyn, show wider variability, with larger interquartile ranges and outliers, indicating less predictable tipping practices. Overall, tip percentages are predominantly below 50%, with a significant concentration in the 10-20% range.
+
+```{r}
+merged_edit2 <- merged_edit |> select(DOBorough, PUBorough, tip_amount, total_amount, trip_distance, PUMonth)
+
+tips <- merged_edit2 |> 
+  mutate(percent_tip = (tip_amount / total_amount) * 100) |> 
+  filter(
+    percent_tip >= 0, 
+    percent_tip < 200, 
+    !is.na(DOBorough), 
+    DOBorough != "NA"
+  ) 
+
+tips_sample <- tips |> 
+  slice_sample(n = 10000)
+
+ggplot(tips_sample, aes(x = DOBorough, y = percent_tip, fill = DOBorough)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(aes(color = DOBorough), width = 0.2, alpha = 0.5, size = 1.5) + 
+  labs(title = "Tip Percentage by DOBorough (Sampled Data)",
+       x = "Drop-off Borough",
+       y = "Tip Percentage (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+tips_sample <- tips |> 
+  slice_sample(n = 10000)
+
+ggplot(tips_sample, aes(x = percent_tip, fill = DOBorough)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Density of Tip Percentages by Drop-off Borough",
+       x = "Tip Percentage (%)",
+       y = "Density") +
+  theme_minimal()
+```
+The majority of trips cover shorter distances (less than 10 miles) and cluster around tip percentages between 10% and 20%, regardless of the borough. However, a few outliers show higher tip percentages exceeding 50%, especially for shorter trips. For longer trips (over 20 miles), tip percentages tend to stabilize or decrease. This suggests that tipping behavior is more variable for shorter trips but converges to a narrower range for longer trips. In addition, many riders tend to tip in standard percentages, such as 20%, as evidenced by the horizontal lines at these tipping levels across various trip distances.
+
+```{r}
+tips_sample <- tips |> 
+  slice_sample(n = 10000) |> 
+  filter(trip_distance < 500)
+
+ggplot(tips_sample, aes(x = trip_distance, y = percent_tip, color = DOBorough)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Tip Percentage vs. Trip Distance",
+       x = "Trip Distance (miles)",
+       y = "Tip Percentage (%)") +
+  theme_minimal()
+```
+Tipping percentages for most boroughs are concentrated between 10% and 15%, except for notable outliers like the Bronx and “Unknown” which have variable average tipping percentages across different months. Seasonal trends are not strongly evident, but some boroughs like EWR and “Unknown” exhibit peak months, possibly tied to specific events or conditions.
+
+```{r}
+tips_sample <- tips |> 
+  filter(trip_distance < 500) |> 
+  group_by(PUMonth) |> 
+  slice_sample(n = 700) |>
+  ungroup()
+
+average_tips <- tips_sample |> 
+  group_by(PUMonth, DOBorough) |> 
+  summarize(avg_tip_percent = mean(percent_tip, na.rm = TRUE), .groups = "drop")
+
+ggplot(average_tips, aes(x = PUMonth, y = avg_tip_percent, color = DOBorough, group = DOBorough)) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(title = "Average Tip Percentage by Month and Borough",
+       x = "Month",
+       y = "Average Tip Percentage (%)",
+       color = "Drop-off Borough") +
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```

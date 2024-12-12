@@ -1,6 +1,6 @@
 # Results
 
-## 1. Fare Amount by Trip Distance
+## Fare Amount by Trip Distance
 
 For the following scatterplots we used a random subsample of the data due to the full dataset being too large (over 38 million rows). Upon plotting `fare_amount` by `trip_distance` we found that there were distinct patterns within the scatterplot. We used `RatecodeID` (the final rate code in effect at the end of the trip) and `payment_type` to illuminate these patterns.
 
@@ -14,16 +14,6 @@ library(dplyr)
 library(forcats)
 library(lubridate)
 library(ggalluvial)
-
-# merging data (file was too big to store on github)
-# path <- 'data/raw'
-# filenames <- list.files(path)
-# merged <- read_parquet(paste0(path, '/', filenames[1]))
-# for (file in filenames[2:length(filenames)]) {
-#   prq <- read_parquet(paste0(path, '/', file))
-#   colnames(prq) <- colnames(merged) # this is just for discrepancies in capitalization of colnames
-#   merged <- rbind(merged, prq)
-# }
 
 path <- 'data/raw'
 filenames <- list.files(path)
@@ -39,7 +29,7 @@ zone_lookup <- readr::read_csv('data/preprocess/taxi_zone_lookup.csv')
 idx <- sample(1:nrow(merged), nrow(merged)/1000, replace = FALSE)
 ```
 
-## 1a. Fare Amount by Trip Distance and Rate Code
+### Fare Amount by Trip Distance and Rate Code
 
 In general, there was a positive linear relationship between `fare_amount` and `trip_distance`. However, JFK alone had a mostly constant fare, regardless of distance. Additionally, some trips with the standard rate were negative and appeared to have a negative linear relationship between the two variables. Lastly, a number of rides with negotiated fares appear to have not gone anywhere (trip distance = 0).
 
@@ -65,7 +55,7 @@ ggplot(merged_edit[idx, ] |> filter(trip_distance < 1000, Ratecode_label != "NA"
        title = "Fare Amount vs. Trip Distance by Rate Code")
 ```
 
-## 1b. Negative Fares
+### Negative Fares
 
 Using the `payment_type` variable, we saw that the negative fares tended to result from instances where there was a dispute or no charge was made.
 
@@ -96,7 +86,7 @@ ggplot(negative_fares_payment_type |>
        title = "Negative Fares by Payment Type")
 ```
 
-# 2. Pick Up and Drop Off Locations
+## Pick Up and Drop Off Locations
 
 Using an alluvial diagram, we saw that the vast majority of rides were within Manhattan. A small fraction of rides starting in Manhattan ended outside of Manhattan, while about half the rides that started outside Manhattan ended in Manhattan. We broke this down further by borough using a grouped bar plot. After Manhattan, the most rides started and ended in Queens, followed by Brooklyn. Interestingly, more rides started in Queens than ended there and more rides ended in Brooklyn than started there.
 
@@ -197,7 +187,7 @@ ggplot(PU_DO_freq |>
   scale_fill_manual(values = c("coral2", "coral4"))
 ```
 
-## 3. Ride Frequency by Month
+## Ride Frequency by Month
 
 The most rides occurred in May and October. Generally, rides were highest in the spring and fall months, decreasing during winter and summer months. There are clear dips in both the bar plot and line plot during January-February and July-September.
 
@@ -238,37 +228,11 @@ ggplot(monthly_rides, aes(x = PUMonth, y = Freq)) +
   labs(x = "Month",
        y = "Number of Rides",
        title = "Total Rides per Month")
-ggplot(monthly_rides, aes(x = PUMonth, y = Freq, group = 1)) +
-  geom_point(color = "chartreuse4") +
-  geom_line(color = "chartreuse4") +
-  labs(x = "Month",
-       y = "Number of Rides",
-       title = "Total Rides per Month")
-
-# by pickup
-ggplot(monthly_rides_PU |> filter(PUBorough != "NA"), 
-       aes(x = PUMonth, y = Freq, color = PUBorough)) +
-  geom_point() +
-  geom_line(aes(group = PUBorough)) +
-  labs(x = "Month",
-       y = "Log Number of Rides",
-       title = "Rides per Month by Pick Up Location",
-       color = "Pick Up Location") +
-  scale_y_log10()
-
-# by drop off
-ggplot(monthly_rides_DO |> filter(DOBorough != "NA"), 
-       aes(x = PUMonth, y = Freq, color = DOBorough)) +
-  geom_point() +
-  geom_line(aes(group = DOBorough)) +
-  labs(x = "Month",
-       y = "Log Number of Rides",
-       title = "Rides per Month by Drop Off Location",
-       fill = "Drop Off Location") +
-  scale_y_log10()
 ```
 
-## 4. Tipping
+## Tipping
+
+### Distribution of Tip Amounts
 
 We found that Manhattan generally has a narrower spread of tip percentages, with a relatively high median, suggesting more consistent tipping behavior, though it also contains many outliers representing very high tipping percentages. Other boroughs, such as Queens and Brooklyn, show wider variability, with larger interquartile ranges and outliers, indicating less predictable tipping practices. Overall, tip percentages are predominantly below 50%, with a significant concentration in the 10-20% range.
 
@@ -298,6 +262,41 @@ ggplot(tips_sample, aes(x = DOBorough, y = percent_tip, fill = DOBorough)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+We also recreated a graph from the following post: https://iquantny.tumblr.com/post/107245431809/how-software-in-half-of-nyc-cabs-generates-52
+
+Looking at observations for rides payed for with credit card (since tips for cash payments were not recorded), we saw that there were clear peaks for 0%, 20%, 25%, and 30% tips. These may correspond to the default options for tipping on credit card readers in taxis. This result was similar to what was found in the article.
+
+```{r}
+# cols to use for summing up total fare without tip
+total_charge_cols <- c("fare_amount", "extra", "mta_tax", "tolls_amount", "improvement_surcharge", "congestion_surcharge", "airport_fee")
+
+# credit cards only for tip, removing negative fares, and unknown/NA locations
+merged_sub_tip <- merged_edit |> select(all_of(c(total_charge_cols, "tip_amount", "payment_type", "payment_type_label", "PUBorough",  "DOBorough"))) |>
+  filter(payment_type_label == "Credit card",
+         PUBorough != "NA" | PUBorough != "Unknown",
+         DOBorough != "NA" | DOBorough != "Unknown",
+         fare_amount > 0)
+
+# calculate tips
+merged_sub_tip <- merged_sub_tip |>
+  mutate(tip_percentage = round(tip_amount/(fare_amount + extra + mta_tax + tolls_amount + improvement_surcharge + congestion_surcharge + airport_fee)*100, 0))
+
+# summarise by tip percent (integer values)
+merged_tip_summarized <- merged_sub_tip |>
+  group_by(tip_percentage) |>
+  summarise(Freq = n())
+
+# plot frequencies for each tip percent
+ggplot(merged_tip_summarized |> filter(tip_percentage < 50), aes(x = tip_percentage, y = Freq)) +
+  geom_col() +
+  labs(x = "Tip Percentage",
+       y =  "Number of Tippers",
+       title = "Distribution of Tip Percentages")
+
+```
+
+### Tipping by Trip Distance and Location
 
 The majority of trips cover shorter distances (less than 10 miles) and cluster around tip percentages between 10% and 20%, regardless of the borough. However, a few outliers show higher tip percentages exceeding 50%, especially for shorter trips. For longer trips (over 20 miles), tip percentages tend to stabilize or decrease. This suggests that tipping behavior is more variable for shorter trips but converges to a narrower range for longer trips. In addition, many riders tend to tip in standard percentages, such as 20%, as evidenced by the horizontal lines at these tipping levels across various trip distances.
 

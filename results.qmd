@@ -4,8 +4,8 @@
 
 For the following scatterplots we used a random subsample of the data due to the full dataset being too large (over 38 million rows). Upon plotting `fare_amount` by `trip_distance` we found that there were distinct patterns within the scatterplot. We used `RatecodeID` (the final rate code in effect at the end of the trip) and `payment_type` to illuminate these patterns.
 
-```{r}
-# preprocessing
+
+```{r include=FALSE}
 
 # load packages
 library(arrow)
@@ -14,6 +14,14 @@ library(dplyr)
 library(forcats)
 library(lubridate)
 library(ggalluvial)
+
+```
+
+
+
+```{r}
+# preprocessing
+
 
 path <- 'data/raw'
 filenames <- list.files(path)

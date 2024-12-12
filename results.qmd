@@ -199,6 +199,11 @@ ggplot(PU_DO_freq |>
 
 ```{r}
 # chloropleth 
+library(readr)
+library(tidyr)
+
+taxi_zone_lookup <- read_csv("data/preprocess/taxi_zone_lookup.csv")
+
 
 path <- 'data/raw'
 filenames <- list.files(path)

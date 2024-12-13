@@ -267,6 +267,10 @@ ggplot(data = manhattan_zones_choropleth) +
 
 ```
 
+While analyzing the location data, we noticed a “Service Zone” column in our location lookup table with values such as “Boro Zone” and “Yellow Zone.” After revisiting the NYC.gov page where we sourced our data, we discovered it listed additional data for green taxis. Although this data is not included in our analyses, green taxis, known as “[Boro Taxis](https://en.wikipedia.org/wiki/Boro_taxi),” are part of a separate fleet that operates exclusively outside a large portion of Manhattan. These taxis were introduced to address the unequal access to legal taxi services, as 95% of traditional yellow taxis pick up riders south of 96th Street.
+
+To explore whether this disparity persists in 2023, we created a choropleth plot to visualize yellow taxi ride pickups by Manhattan neighborhood. The plot reveals that ride pickups are still disproportionately concentrated south of 96th Street, with the Upper East Side having the most pickups.
+
 
 ## Ride Frequency by Month
 

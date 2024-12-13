@@ -1,6 +1,7 @@
 # Data
 
 ## Description
+
 We are using the New York City Taxi and Limousine Commission (TLC) trip record dataset. [(Link to dataset)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) The dataset is collected by technology providers authorized under the Taxicab & Livery Passenger Enhancement Programs (TPEP/LPEP), then provided to the NYC TLC. Data is available from 2009 through present and includes pick-up and drop-off dates, times, and locations, trip distances, itemized fares, rate types, payment types, and driver-reported passenger counts. It is updated monthly with a two-month delay, with each file containing a month of data. For each month, there are yellow taxi, green taxi, for-hire vehicle, and high volume for-hire vehicle trip record files. The data comes in PARQUET format with 19 columns. The number of rows depends on the number of trips that month. We will download the monthly data directly from the NYC TLC website and combine it in R.
 
 ## Missing value analysis
@@ -28,8 +29,6 @@ for (file in filenames[2:length(filenames)]) {
   merged <- rbind(merged, prq)
 }
 ```
-
-
 
 ```{r}
 # check for missing values
@@ -59,6 +58,7 @@ ggplot(missing_per_col, aes(x = fct_inorder(as.factor(col)), y = num_missing)) +
        title = 'Missing Values by Column') +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
+
 This Missingness Correlation Matrix visualizes how the missing values in different columns are related. Each tile represents the correlation between the missingness of two features, with the diagonal always being 1 (a column perfectly correlates with itself). In our data, most tiles are gray which indicates weak or no correlation between missingness in most features. White tiles suggest that correlations could not be calculated (likely due to insufficient overlap). This implies that missing values in the dataset are largely independent across features, with no strong patterns of systematic missingness.
 
 ```{r}
@@ -81,4 +81,3 @@ ggplot(missing_corr_df, aes(x = Column1, y = Column2, fill = Correlation)) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         axis.text.y = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
-

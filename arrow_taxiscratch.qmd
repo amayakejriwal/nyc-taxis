@@ -20,7 +20,7 @@ filenames <- list.files(path)
 merged <- open_dataset(paste0(path, '/', filenames))
 
 merged_credit <- merged %>%
-  filter(payment_type == 1, total_amount > 0, !PULocationID %in% c(264, 265)) %>%
+  filter(payment_type == 1, total_amount > 0, !PULocationID %in% c(264, 265), !DOLocationID %in% c(264, 265)) %>%
   select(PULocationID, DOLocationID, VendorID,
          tip_amount, fare_amount, tolls_amount,
          improvement_surcharge, congestion_surcharge, extra,
@@ -136,6 +136,39 @@ ggplot(data = manhattan_zones_choropleth) +
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+```{r}
+# making ridgeline:
+
+
+library(ggridges)
+
+DOmerged_with_zones <- merged_credit_reg %>%
+  filter( !DOLocationID %in% c(264, 265)) %>%
+  left_join(taxi_zone_lookup, by = c("DOLocationID" = "LocationID"))
+
+sampled_data <- DOmerged_with_zones %>%
+  mutate(Borough = ifelse(DOLocationID %in% c(1, 132, 138), "Airports", Borough)) %>%  
+  sample_n(10000)  
+
+ridgeline_data <- sampled_data %>%
+  mutate(tip_pct_total = round(tip_pct_total, 0)) %>%  
+  group_by(Borough, tip_pct_total) %>%
+  summarise(Freq = n(), .groups = "drop")  
+
+
+ggplot(ridgeline_data, aes(x = tip_pct_total, y = Borough, height = Freq, group = Borough, fill = Borough)) +
+  geom_density_ridges(stat = "identity", scale = 0.9) +
+  xlim(0,40) + 
+  labs(
+    x = "Tip Percentage",
+    y = "Dropoff Borough",
+    title = "Ridgeline Plot of Tip Percentages by Dropoff Borough"
+  ) +
+  theme_minimal()
 
 
 ```

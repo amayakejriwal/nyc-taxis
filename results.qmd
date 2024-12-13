@@ -272,6 +272,7 @@ While analyzing the location data, we noticed a “Service Zone” column in our
 To explore whether this disparity persists in 2023, we created a choropleth plot to visualize yellow taxi ride pickups by Manhattan neighborhood. The plot reveals that ride pickups are still disproportionately concentrated south of 96th Street, with the Upper East Side having the most pickups.
 
 
+
 ## Ride Frequency by Month
 
 The most rides occurred in May and October. Generally, rides were highest in the spring and fall months, decreasing during winter and summer months. There are clear dips in both the bar plot and line plot during January-February and July-September.

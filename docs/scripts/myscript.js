@@ -40,7 +40,7 @@ const checkboxContainer = d3.select("#plot")
   .style("margin-top", "20px");
 
 // Load the CSV file
-const csvUrl = "https://raw.githubusercontent.com/amayakejriwal/nyc-taxis/main/data/tips_sample.csv";
+const csvUrl = "https://raw.githubusercontent.com/amayakejriwal/nyc-taxis/main/tips_sample2.csv";
 
 d3.csv(csvUrl).then(data => {
   data.forEach(d => {

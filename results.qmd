@@ -24,7 +24,7 @@ library(tidyr)
 
 ```{r}
 # preprocessing
-
+set.seed(123)
 
 path <- 'data/raw'
 filenames <- list.files(path)
@@ -99,40 +99,37 @@ ggplot(negative_fares_payment_type |>
 
 ## Pick Up and Drop Off Locations
 
-Using an alluvial diagram, we saw that the vast majority of rides were within Manhattan. A small fraction of rides starting in Manhattan ended outside of Manhattan, while about half the rides that started outside Manhattan ended in Manhattan. We broke this down further by borough using a grouped bar plot. After Manhattan, the most rides started and ended in Queens, followed by Brooklyn. Interestingly, more rides started in Queens than ended there and more rides ended in Brooklyn than started there.
+Using an alluvial diagram, we saw that the vast majority of rides were within Manhattan. A small fraction of rides starting in Manhattan ended outside of Manhattan, while about half the rides that started outside Manhattan ended in Manhattan. We broke this down further by borough using a grouped bar plot. After Manhattan, the most rides started and ended at airports, followed by Brooklyn. Interestingly, more rides started at the airports than ended there and more rides ended in Brooklyn and Queens than started there.
 
 ```{r}
 # use look up table to get IDs in each borough
+Airport_locIDs <- c(1, 132, 138)
 boroughs <- zone_lookup$Borough |> unique()
 for (i in 1:length(boroughs)) {
   b <- boroughs[i]
-  if (b == "N/A") {
-    b <- "NA"
+  if (b == "N/A" | b == "Unknown") {
+    next
   }
   if (b == "Staten Island") {
     b <- "StatenIsland"
   }
-  assign(paste0(b, "_locIDs"), (zone_lookup |> filter(Borough == b))$LocationID)
+  assign(paste0(b, "_locIDs"), (zone_lookup |> filter(Borough == b, !LocationID %in% Airport_locIDs))$LocationID)
 }
 
 # label pick up and drop off locations by borough
-merged_edit <- merged_edit |> mutate(PUBorough = case_when(PULocationID %in% EWR_locIDs ~ "EWR",
-                                                      PULocationID %in% Queens_locIDs ~ "Queens",
-                                                      PULocationID %in% Bronx_locIDs ~ "Bronx",
-                                                      PULocationID %in% Manhattan_locIDs ~ "Manhattan",
-                                                      PULocationID %in% StatenIsland_locIDs ~ "Staten Island",
-                                                      PULocationID %in% Brooklyn_locIDs ~ "Brooklyn",
-                                                      PULocationID %in% Unknown_locIDs ~ "Unknown",
-                                                      PULocationID %in% NA_locIDs ~ "NA"))
+merged_edit <- merged_edit |> mutate(PUBorough = case_when(PULocationID %in% Airport_locIDs ~ "Airport",
+                                                           PULocationID %in% Queens_locIDs ~ "Queens",
+                                                           PULocationID %in% Bronx_locIDs ~ "Bronx",
+                                                           PULocationID %in% Manhattan_locIDs ~ "Manhattan",
+                                                           PULocationID %in% StatenIsland_locIDs ~ "Staten Island",
+                                                           PULocationID %in% Brooklyn_locIDs ~ "Brooklyn"))
 
-merged_edit <- merged_edit |> mutate(DOBorough = case_when(DOLocationID %in% EWR_locIDs ~ "EWR",
+merged_edit <- merged_edit |> mutate(DOBorough = case_when(DOLocationID %in% Airport_locIDs ~ "Airport",
                                                            DOLocationID %in% Queens_locIDs ~ "Queens",
                                                            DOLocationID %in% Bronx_locIDs ~ "Bronx",
                                                            DOLocationID %in% Manhattan_locIDs ~ "Manhattan",
                                                            DOLocationID %in% StatenIsland_locIDs ~ "Staten Island",
-                                                           DOLocationID %in% Brooklyn_locIDs ~ "Brooklyn",
-                                                           DOLocationID %in% Unknown_locIDs ~ "Unknown",
-                                                           DOLocationID %in% NA_locIDs ~ "NA"))
+                                                           DOLocationID %in% Brooklyn_locIDs ~ "Brooklyn"))
 ```
 
 ```{r}
@@ -164,7 +161,8 @@ ggplot(PU_DO_alluvial_lumped,
   scale_x_discrete(limits = c("Pick up location", "Drop off location"), name = "Axes") +
   labs(y = "Number of Rides",
        title = "Pick Up to Drop Off (Manhattan vs. Non-Manhattan)") +
-  guides(fill = "none")
+  guides(fill = "none") +
+  scale_y_continuous(labels = scales::comma)
 
 ```
 
@@ -195,7 +193,8 @@ ggplot(PU_DO_freq |>
        y = "Number of Rides",
        title = "Number of Rides by Location",
        fill = "Location Type") +
-  scale_fill_manual(values = c("coral2", "coral4"))
+  scale_fill_manual(values = c("coral2", "coral4")) +
+  scale_y_continuous(labels = scales::comma)
 ```
 
 ```{r}
@@ -296,27 +295,20 @@ monthly_rides <- merged_edit |>
   group_by(PUMonth) |> 
   summarise(Freq = n())
 
-monthly_rides_PU <- merged_edit |> 
-  group_by(PUMonth, PUBorough) |> 
-  summarise(Freq = n())
-
-monthly_rides_DO <- merged_edit |> 
-  group_by(PUMonth, DOBorough) |> 
-  summarise(Freq = n())
-
 # pick up month vs. number of rides
 ggplot(monthly_rides, aes(x = PUMonth, y = Freq)) +
   geom_col(fill = "chartreuse4") +
   labs(x = "Month",
        y = "Number of Rides",
-       title = "Total Rides per Month")
+       title = "Total Rides per Month") +
+  scale_y_continuous(labels = scales::comma)
 ```
 
 ## Tipping
 
 ### Distribution of Tip Amounts
 
-We found that Manhattan generally has a narrower spread of tip percentages, with a relatively high median, suggesting more consistent tipping behavior, though it also contains many outliers representing very high tipping percentages. Other boroughs, such as Queens and Brooklyn, show wider variability, with larger interquartile ranges and outliers, indicating less predictable tipping practices. Overall, tip percentages are predominantly below 50%, with a significant concentration in the 10-20% range.
+We found that Manhattan tended to have the most outlying values. Queens and the Bronx had the widest spread of tipping percentages, with larger interquartile ranges and outliers. Overall, tip percentages are predominantly below 50%, with a significant concentration in the 10-20% range.
 
 ```{r}
 merged_edit2 <- merged_edit |> select(DOBorough, PUBorough, tip_amount, total_amount, trip_distance, PUMonth, fare_amount, payment_type)
@@ -356,8 +348,6 @@ total_charge_cols <- c("fare_amount", "extra", "mta_tax", "tolls_amount", "impro
 # credit cards only for tip, removing negative fares, and unknown/NA locations
 merged_sub_tip <- merged_edit |> select(all_of(c(total_charge_cols, "tip_amount", "payment_type", "payment_type_label", "PUBorough",  "DOBorough"))) |>
   filter(payment_type_label == "Credit card",
-         PUBorough != "NA" | PUBorough != "Unknown",
-         DOBorough != "NA" | DOBorough != "Unknown",
          fare_amount > 0)
 
 # calculate tips
@@ -394,7 +384,7 @@ ggplot(tips_sample, aes(x = trip_distance, y = percent_tip, color = DOBorough)) 
        y = "Tip Percentage (%)") +
   theme_minimal()
 ```
-Tipping percentages for most boroughs are concentrated between 10% and 15%, except for notable outliers like the Bronx and “Unknown” which have variable average tipping percentages across different months. Seasonal trends are not strongly evident, but some boroughs like EWR and “Unknown” exhibit peak months, possibly tied to specific events or conditions.
+Tipping percentages for most boroughs are concentrated between 10% and 15%, except for notable outliers like the Bronx which has variable average tipping percentages across different months. Seasonal trends are not strongly evident.
 
 ```{r}
 tips_sample <- tips |> 
